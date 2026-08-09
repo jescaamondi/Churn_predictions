@@ -1,0 +1,11 @@
+import pandas as pd
+df=pd.read_csv('Telco-Churn.csv')
+df['TotalCharges']=pd.to_numeric(df['TotalCharges'], errors='coerce')
+df=df.dropna(subset=['TotalCharges'])
+df=df.drop(columns=['customerID'])
+df['Churn']=df['Churn'].map({'Yes':1, 'No':0})
+print(df['TotalCharges'].isnull().sum())
+print(df.shape)
+print(df.head())
+print(df.info())
+print(df['Churn'].value_counts())
