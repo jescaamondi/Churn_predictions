@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import joblib
 
-# Page config
 st.set_page_config(
     page_title="Customer Churn Predictor",
     page_icon="📊",
@@ -11,22 +10,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load model
 @st.cache_resource
 def load_model_and_preprocessor():
     model = joblib.load('best_churn_model.pkl')
     preprocessor = joblib.load('preprocessor.pkl')
-    feature_names = joblib.load('feature_names.pkl')
-    return model, preprocessor, feature_names
+    return model, preprocessor
 
 try:
-    model, preprocessor, feature_names = load_model_and_preprocessor()
-    st.sidebar.success("✅ Model loaded!")
+    model, preprocessor = load_model_and_preprocessor()
+    st.sidebar.success(" Model loaded!")
 except FileNotFoundError:
-    st.error("❌ Model files not found. Train the model first.")
+    st.error(" Model files not found. Train the model first.")
     st.stop()
 
-# Sidebar form
 st.sidebar.header("👤 Customer Info")
 st.sidebar.markdown("---")
 
@@ -51,16 +47,14 @@ streaming_movies = st.sidebar.selectbox("Streaming Movies", ["No", "Yes", "No in
 monthly_charges = st.sidebar.number_input("Monthly Charges ($)", 0.0, 200.0, 70.0, 0.5)
 total_charges = st.sidebar.number_input("Total Charges ($)", 0.0, 10000.0, 1000.0, 10.0)
 
-# Main
 st.title("📊 Customer Churn Predictor")
 st.markdown("Predict customer churn risk in real-time.")
 
-# Create input
 input_data = pd.DataFrame({
     'gender': [gender],
     'SeniorCitizen': [1 if senior_citizen == "Yes" else 0],
-    'Partner': [1 if partner == "Yes" else 0],
-    'Dependents': [1 if dependents == "Yes" else 0],
+    'Partner': [partner],
+    'Dependents': [dependents],
     'tenure': [tenure],
     'PhoneService': [phone_service],
     'MultipleLines': [multiple_lines],
@@ -72,13 +66,12 @@ input_data = pd.DataFrame({
     'StreamingTV': [streaming_tv],
     'StreamingMovies': [streaming_movies],
     'Contract': [contract],
-    'PaperlessBilling': [1 if paperless_billing == "Yes" else 0],
+    'PaperlessBilling': [paperless_billing],
     'PaymentMethod': [payment_method],
     'MonthlyCharges': [monthly_charges],
     'TotalCharges': [total_charges]
 })
 
-# Feature engineering
 input_data['tenure_to_monthly_ratio'] = input_data['tenure'] / (input_data['MonthlyCharges'] + 1)
 input_data['total_to_monthly_ratio'] = input_data['TotalCharges'] / (input_data['MonthlyCharges'] + 1)
 input_data['avg_monthly_spend'] = input_data['TotalCharges'] / (input_data['tenure'] + 1)
@@ -90,17 +83,13 @@ for col in service_cols:
 input_data['service_count'] = input_data[[f'{col}_bin' for col in service_cols]].sum(axis=1)
 input_data['streaming_count'] = input_data['StreamingTV_bin'] + input_data['StreamingMovies_bin']
 input_data['protection_count'] = input_data['OnlineSecurity_bin'] + input_data['DeviceProtection_bin'] + input_data['TechSupport_bin']
-input_data.drop(columns=[f'{col}_bin' for col in service_cols], axis=1, inplace=True)
+input_data.drop(columns=[f'{col}_bin' for col in service_cols], inplace=True)
 
 input_data['contract_risk_score'] = input_data['Contract'].map({'Month-to-month': 3, 'One year': 2, 'Two year': 1})
 input_data['payment_risk_score'] = (input_data['PaymentMethod'] == 'Electronic check').astype(int)
 input_data['internet_risk_score'] = input_data['InternetService'].map({'No': 0, 'DSL': 1, 'Fiber optic': 2})
 
-# Ensure column order
-input_data = input_data[feature_names]
-
-# Predict
-if st.button("🔮 Predict Churn", type="primary", use_container_width=True):
+if st.button(" Predict Churn", type="primary", use_container_width=True):
     with st.spinner("Analyzing..."):
         input_processed = preprocessor.transform(input_data)
         churn_proba = model.predict_proba(input_processed)[0, 1]
@@ -130,4 +119,4 @@ if st.button("🔮 Predict Churn", type="primary", use_container_width=True):
         st.metric("Probability", f"{churn_proba*100:.2f}%")
 
 st.markdown("---")
-st.caption("Built with XGBoost | Portfolio Project")
+st.caption("Built with CatBoost | Portfolio Project")
